@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Inventaire — Stock NGO{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h2 class="mb-0 fw-bold">
+    <i class="bi bi-list-ul me-2 text-primary"></i>
+    Inventaire
+    {% if selected_location %}
+    — <span class="text-primary">{{ location_labels.get(selected_location, selected_location) }}</span>
+    {% endif %}
+  </h2>
+  <span class="badge bg-primary ms-3 fs-6">{{ items | length }}</span>
+</div>
+
+<!-- Filters -->
+<form method="get" class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="form-label small fw-semibold">Recherche</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Désignation, REF, salle…" value="{{ search }}">
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small fw-semibold">Centre</label>
+        <select name="location" class="form-select">
+          <option value="">Tous les centres</option>
+          {% for loc in locations %}
+          <option value="{{ loc }}" {% if loc == selected_location %}selected{% endif %}>
+            {{ location_labels.get(loc, loc) }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small fw-semibold">Catégorie</label>
+        <select name="category" class="form-select">
+          <option value="">Toutes</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-fill">
+          <i class="bi bi-funnel me-1"></i>Filtrer
+        </button>
+        <a href="/inventory" class="btn btn-outline-secondary">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table id="invTable" class="table table-hover table-sm mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>REF / N°</th>
+            <th>Désignation</th>
+            <th>Catégorie</th>
+            <th>Centre</th>
+            <th>Salle</th>
+            <th>Qté</th>
+            <th>État</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td><code class="small">{{ item.ref }}</code></td>
+            <td>
+              <span class="fw-semibold">{{ item.designation }}</span>
+              {% if item.brand %}<br><small class="text-muted">{{ item.brand }}</small>{% endif %}
+            </td>
+            <td><span class="badge bg-secondary-subtle text-secondary">{{ item.category }}</span></td>
+            <td>
+              <span class="badge
+                {% if item.location == 'Rex' %}bg-success
+                {% elif item.location == 'Ankofafa' %}bg-warning text-dark
+                {% else %}bg-info text-dark{% endif %}">
+                {{ item.location }}
+              </span>
+            </td>
+            <td><small>{{ item.room }}</small></td>
+            <td class="text-center">
+              {% if item.quantity is not none %}
+                <span class="fw-bold
+                  {% if item.min_quantity and item.quantity < item.min_quantity %}text-danger{% endif %}">
+                  {{ item.quantity }}
+                </span>
+                {% if item.min_quantity %}
+                  <br><small class="text-muted">min {{ item.min_quantity }}</small>
+                {% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if item.condition %}
+              <span class="badge
+                {% if item.condition in ['Bon', 'Buono', 'bon'] %}bg-success
+                {% elif item.condition in ['Cassé', 'Cass'] or 'cass' in item.condition.lower() %}bg-danger
+                {% elif 'réparer' in item.condition.lower() or 'riparare' in item.condition.lower() %}bg-warning text-dark
+                {% else %}bg-light text-dark border{% endif %}">
+                {{ item.condition }}
+              </span>
+              {% else %}—{% endif %}
+            </td>
+            <td><small class="text-muted">{{ item.notes[:60] }}{% if item.notes|length > 60 %}…{% endif %}</small></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function () {
+  $('#invTable').DataTable({
+    pageLength: 25,
+    order: [[3, 'asc'], [1, 'asc']],
+    language: {
+      search: 'Recherche rapide:',
+      lengthMenu: 'Afficher _MENU_ entrées',
+      info: '_START_–_END_ sur _TOTAL_',
+      paginate: { previous: '‹', next: '›' }
+    },
+    columnDefs: [{ orderable: false, targets: [7] }]
+  });
+});
+</script>
+{% endblock %}
