@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Gestion Stock NGO{% endblock %}</title>
+  <title>{% block title %}Gestion Stock — La Vita per Te{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -11,51 +11,145 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-  <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="/">
-      <i class="bi bi-boxes me-2"></i>Stock NGO
+<!-- Top brand bar -->
+<div class="brand-bar"></div>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}"
+           height="52" alt="La Vita per Te"
+           onerror="this.style.display='none';document.getElementById('brand-fallback').style.display='block'">
+      <span id="brand-fallback" style="display:none" class="fw-bold text-danger fs-5">La Vita per Te</span>
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
       <span class="navbar-toggler-icon"></span>
     </button>
+
     <div class="collapse navbar-collapse" id="nav">
-      <ul class="navbar-nav me-auto">
+      <ul class="navbar-nav me-auto ms-3">
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="/">
+          <a class="nav-link nav-pill {% if request.endpoint == 'dashboard' %}active{% endif %}" href="/">
             <i class="bi bi-speedometer2 me-1"></i>Dashboard
           </a>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if request.endpoint == 'inventory' %}active{% endif %}"
+          <a class="nav-link nav-pill dropdown-toggle {% if request.endpoint == 'inventory' %}active{% endif %}"
              href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-list-ul me-1"></i>Inventaire
+            <i class="bi bi-boxes me-1"></i>Inventaire
           </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="/inventory">Tout</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="/inventory?location=Rex">Centre Rex</a></li>
-            <li><a class="dropdown-item" href="/inventory?location=Ankofafa">Centre Miaraka Ankofafa</a></li>
-            <li><a class="dropdown-item" href="/inventory?location=Fille">Centre Miaraka Fille</a></li>
+          <ul class="dropdown-menu border-0 shadow">
+            <li><a class="dropdown-item" href="/inventory"><i class="bi bi-grid me-2 text-muted"></i>Tout l'inventaire</a></li>
+            <li><hr class="dropdown-divider mx-3 my-1"></li>
+            <li><a class="dropdown-item" href="/inventory?location=Rex">
+              <span class="loc-dot bg-success me-2"></span>Centre Rex
+            </a></li>
+            <li><a class="dropdown-item" href="/inventory?location=Ankofafa">
+              <span class="loc-dot bg-warning me-2"></span>Centre Miaraka Ankofafa
+            </a></li>
+            <li><a class="dropdown-item" href="/inventory?location=Fille">
+              <span class="loc-dot bg-info me-2"></span>Centre Miaraka Fille
+            </a></li>
           </ul>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'library' %}active{% endif %}" href="/library">
+          <a class="nav-link nav-pill {% if request.endpoint == 'library' %}active{% endif %}" href="/library">
             <i class="bi bi-book me-1"></i>Bibliothèque
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'mouvements' %}active{% endif %}" href="/mouvements">
+          <a class="nav-link nav-pill {% if request.endpoint == 'mouvements' %}active{% endif %}" href="/mouvements">
             <i class="bi bi-arrow-left-right me-1"></i>Mouvements
           </a>
         </li>
       </ul>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#helpModal">
+          <i class="bi bi-question-circle me-1"></i>Aide
+        </button>
+      </div>
     </div>
   </div>
 </nav>
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 px-4">
   {% block content %}{% endblock %}
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <div>
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-question-circle-fill text-danger me-2"></i>Guide d'utilisation
+          </h5>
+          <p class="text-muted small mb-0">Gestion de stock — La Vita per Te</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <ul class="nav nav-tabs mb-3" id="helpTabs">
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#h-dash">Dashboard</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#h-inv">Inventaire</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#h-mvt">Mouvements</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#h-lib">Bibliothèque</button></li>
+        </ul>
+        <div class="tab-content px-1">
+
+          <div class="tab-pane fade show active" id="h-dash">
+            <h6 class="fw-bold text-danger">Dashboard</h6>
+            <p>La page d'accueil offre une vue d'ensemble de tout l'inventaire :</p>
+            <ul>
+              <li><strong>Cartes de synthèse</strong> — nombre total d'articles et répartition par centre. Cliquez sur une carte pour accéder directement à l'inventaire filtré.</li>
+              <li><strong>Matériel à contrôler</strong> — liste des objets à réparer, remplacer ou en baisse de stock, extraits des feuilles de suivi.</li>
+              <li><strong>Stock bas</strong> — articles dont la quantité est inférieure au minimum défini.</li>
+              <li><strong>Prêts en retard</strong> — livres de la bibliothèque dont la date de retour est dépassée.</li>
+              <li><strong>Graphiques</strong> — répartition par catégorie, par emplacement et état des articles.</li>
+            </ul>
+          </div>
+
+          <div class="tab-pane fade" id="h-inv">
+            <h6 class="fw-bold text-danger">Inventaire</h6>
+            <p>Consultez et gérez les articles des trois centres :</p>
+            <ul>
+              <li><strong>Filtres</strong> — filtrez par centre, catégorie et salle. Le filtre par salle se met à jour automatiquement selon le centre sélectionné. Utilisez la recherche texte pour trouver un article par désignation ou référence.</li>
+              <li><strong>Tableau</strong> — les colonnes sont triables et filtrables. Utilisez la recherche rapide de DataTables pour une recherche globale.</li>
+              <li><strong>Enregistrer un mouvement</strong> — cliquez sur le bouton <i class="bi bi-arrow-left-right"></i> sur la ligne d'un article pour enregistrer une entrée ou sortie de stock. La quantité affichée se met à jour immédiatement.</li>
+              <li><strong>Stock bas</strong> — les quantités inférieures au minimum s'affichent en rouge.</li>
+            </ul>
+          </div>
+
+          <div class="tab-pane fade" id="h-mvt">
+            <h6 class="fw-bold text-danger">Mouvements</h6>
+            <p>Consultez l'historique de tous les mouvements de stock :</p>
+            <ul>
+              <li><strong>Entrée</strong> <span class="badge bg-success">+</span> — stock augmenté (réception de matériel, retour, don…)</li>
+              <li><strong>Sortie</strong> <span class="badge bg-danger">-</span> — stock diminué (utilisation, perte, prêt externe…)</li>
+              <li><strong>Filtre par centre</strong> — filtrez l'historique par centre avec le menu déroulant.</li>
+              <li>Les mouvements sont actuellement stockés dans un fichier local. À terme, ils seront migrés dans une base de données.</li>
+            </ul>
+          </div>
+
+          <div class="tab-pane fade" id="h-lib">
+            <h6 class="fw-bold text-danger">Bibliothèque</h6>
+            <p>Gestion des livres et des prêts :</p>
+            <ul>
+              <li><strong>Catalogue</strong> — liste complète des livres avec code, titre, auteur, catégorie, langue et statut.</li>
+              <li><strong>Prêts actifs</strong> — livres actuellement empruntés avec la date d'échéance. Les prêts <span class="badge bg-danger">SCADUTO</span> sont en retard.</li>
+              <li>Les données proviennent du fichier <em>BIBLIOTECA.xlsx</em>. La gestion complète des prêts (ajout, retour) sera disponible avec la migration vers la base de données.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-danger" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

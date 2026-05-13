@@ -1,33 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Inventaire — Stock NGO{% endblock %}
+{% block title %}Inventaire — La Vita per Te{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center mb-3">
-  <h2 class="mb-0 fw-bold">
-    <i class="bi bi-list-ul me-2 text-primary"></i>
-    Inventaire
+<div class="page-header mb-4">
+  <h2 class="page-title">
+    <i class="bi bi-boxes me-2"></i>Inventaire
     {% if selected_location %}
-    — <span class="text-primary">{{ location_labels.get(selected_location, selected_location) }}</span>
+    <span class="text-danger">— {{ location_labels.get(selected_location, selected_location) }}</span>
     {% endif %}
   </h2>
-  <span class="badge bg-primary ms-3 fs-6">{{ items | length }}</span>
+  <p class="page-subtitle">{{ items | length }} article{{ 's' if items|length != 1 }} trouvé{{ 's' if items|length != 1 }}</p>
 </div>
 
 <!-- Filters -->
-<form method="get" id="filterForm" class="card border-0 shadow-sm mb-4">
-  <div class="card-body">
+<div class="filter-card mb-4">
+  <form method="get" id="filterForm">
     <div class="row g-2 align-items-end">
       <div class="col-12 col-md-3">
-        <label class="form-label small fw-semibold">Recherche</label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="text" name="q" class="form-control" placeholder="Désignation, REF…" value="{{ search }}">
+        <label class="form-label">Recherche</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0"
+                 placeholder="Désignation, référence…" value="{{ search }}">
         </div>
       </div>
       <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold">Centre</label>
-        <select name="location" id="locationSelect" class="form-select">
-          <option value="">Tous</option>
+        <label class="form-label">Centre</label>
+        <select name="location" id="locationSelect" class="form-select form-select-sm">
+          <option value="">Tous les centres</option>
           {% for loc in locations %}
           <option value="{{ loc }}" {% if loc == selected_location %}selected{% endif %}>
             {{ location_labels.get(loc, loc) }}
@@ -36,163 +36,174 @@
         </select>
       </div>
       <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold">Catégorie</label>
-        <select name="category" class="form-select">
+        <label class="form-label">Catégorie</label>
+        <select name="category" class="form-select form-select-sm">
           <option value="">Toutes</option>
           {% for cat in categories %}
           <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-6 col-md-3">
-        <label class="form-label small fw-semibold">Salle / Emplacement</label>
-        <select name="room" class="form-select">
-          <option value="">Toutes les salles</option>
+      <div class="col-12 col-md-3">
+        <label class="form-label">Salle / Emplacement</label>
+        <select name="room" class="form-select form-select-sm">
+          <option value="">Tous les emplacements</option>
           {% for r in rooms %}
           <option value="{{ r }}" {% if r == selected_room %}selected{% endif %}>{{ r }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-6 col-md-2 d-flex gap-2">
-        <button type="submit" class="btn btn-primary flex-fill">
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm flex-fill">
           <i class="bi bi-funnel me-1"></i>Filtrer
         </button>
-        <a href="/inventory" class="btn btn-outline-secondary">
+        <a href="/inventory" class="btn btn-outline-secondary btn-sm px-3" title="Réinitialiser">
           <i class="bi bi-x-lg"></i>
         </a>
       </div>
     </div>
-  </div>
-</form>
+  </form>
+</div>
 
 <!-- Table -->
-<div class="card border-0 shadow-sm">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table id="invTable" class="table table-hover table-sm mb-0">
-        <thead class="table-dark">
-          <tr>
-            <th>REF / N°</th>
-            <th>Désignation</th>
-            <th>Catégorie</th>
-            <th>Centre</th>
-            <th>Salle</th>
-            <th>Stock</th>
-            <th>État</th>
-            <th>Notes</th>
-            <th class="text-center">Mvt</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in items %}
-          <tr>
-            <td><code class="small">{{ item.ref }}</code></td>
-            <td>
-              <span class="fw-semibold">{{ item.designation }}</span>
-              {% if item.brand %}<br><small class="text-muted">{{ item.brand }}</small>{% endif %}
-            </td>
-            <td><span class="badge bg-secondary-subtle text-secondary">{{ item.category }}</span></td>
-            <td>
-              <span class="badge
-                {% if item.location == 'Rex' %}bg-success
-                {% elif item.location == 'Ankofafa' %}bg-warning text-dark
-                {% else %}bg-info text-dark{% endif %}">
-                {{ item.location }}
+<div class="dash-card">
+  <div class="table-responsive">
+    <table id="invTable" class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Réf / N°</th>
+          <th>Désignation</th>
+          <th>Catégorie</th>
+          <th>Centre</th>
+          <th>Emplacement</th>
+          <th class="text-center">Stock</th>
+          <th>État</th>
+          <th>Notes</th>
+          <th class="text-center" style="width:42px">Mvt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td><code class="small text-muted">{{ item.ref }}</code></td>
+          <td>
+            <span class="fw-semibold">{{ item.designation }}</span>
+            {% if item.brand %}<br><small class="text-muted">{{ item.brand }}</small>{% endif %}
+          </td>
+          <td>
+            <span class="badge rounded-pill bg-light text-secondary border" style="font-size:.75rem">
+              {{ item.category or '—' }}
+            </span>
+          </td>
+          <td>
+            <span class="loc-badge
+              {% if item.location == 'Rex' %}loc-rex
+              {% elif item.location == 'Ankofafa' %}loc-ankofafa
+              {% else %}loc-fille{% endif %}">
+              {{ item.location }}
+            </span>
+          </td>
+          <td><small class="text-muted">{{ item.room or '—' }}</small></td>
+          <td class="text-center" id="qty-{{ loop.index }}">
+            {% if item.quantity is not none %}
+              <span class="fw-bold {% if item.min_quantity and item.quantity < item.min_quantity %}text-danger{% endif %}">
+                {{ item.quantity }}
               </span>
-            </td>
-            <td><small>{{ item.room }}</small></td>
-            <td class="text-center" id="qty-{{ loop.index }}">
-              {% if item.quantity is not none %}
-                <span class="fw-bold
-                  {% if item.min_quantity and item.quantity < item.min_quantity %}text-danger{% endif %}">
-                  {{ item.quantity }}
-                </span>
-                {% if item.min_quantity %}
-                  <br><small class="text-muted">min {{ item.min_quantity }}</small>
-                {% endif %}
-              {% else %}—{% endif %}
-            </td>
-            <td>
-              {% if item.condition %}
-              <span class="badge
-                {% if item.condition in ['Bon', 'Buono', 'bon'] %}bg-success
-                {% elif 'cass' in item.condition.lower() %}bg-danger
-                {% elif 'réparer' in item.condition.lower() or 'riparare' in item.condition.lower() %}bg-warning text-dark
-                {% else %}bg-light text-dark border{% endif %}">
-                {{ item.condition }}
-              </span>
-              {% else %}—{% endif %}
-            </td>
-            <td><small class="text-muted">{{ item.notes[:60] }}{% if item.notes|length > 60 %}…{% endif %}</small></td>
-            <td class="text-center">
-              <button class="btn btn-sm btn-outline-primary py-0 px-2 btn-mvt"
-                data-ref="{{ item.ref }}"
-                data-location="{{ item.location }}"
-                data-designation="{{ item.designation }}"
-                data-qty="{{ item.quantity if item.quantity is not none else 0 }}"
-                data-row="{{ loop.index }}"
-                data-bs-toggle="modal" data-bs-target="#mvtModal">
-                <i class="bi bi-arrow-left-right"></i>
-              </button>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+              {% if item.min_quantity %}
+                <br><small class="text-muted" style="font-size:.7rem">min {{ item.min_quantity }}</small>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.condition %}
+            {% set c = item.condition.lower() %}
+            <span class="badge
+              {% if c == 'bon' %}bg-success
+              {% elif 'cass' in c %}bg-danger
+              {% elif 'réparer' in c or 'réparer' in c or 'riparare' in c %}bg-warning text-dark
+              {% elif 'usé' in c or 'use' in c %}bg-secondary
+              {% else %}bg-light text-dark border{% endif %}"
+              style="font-size:.75rem">
+              {{ item.condition }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+          <td><small class="text-muted">{{ item.notes[:55] }}{% if item.notes|length > 55 %}…{% endif %}</small></td>
+          <td class="text-center">
+            <button class="btn btn-mvt btn-outline-secondary btn-mvt"
+              data-ref="{{ item.ref }}"
+              data-location="{{ item.location }}"
+              data-designation="{{ item.designation }}"
+              data-qty="{{ item.quantity if item.quantity is not none else 0 }}"
+              data-row="{{ loop.index }}"
+              data-bs-toggle="modal" data-bs-target="#mvtModal"
+              title="Enregistrer un mouvement">
+              <i class="bi bi-arrow-left-right"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
 <!-- Movement Modal -->
 <div class="modal fade" id="mvtModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2"></i>Enregistrer un mouvement</h5>
+  <div class="modal-dialog modal-dialog-centered" style="max-width:460px">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0">
+        <h6 class="modal-title fw-bold">
+          <i class="bi bi-arrow-left-right text-danger me-2"></i>Mouvement de stock
+        </h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <div class="mb-3">
+      <div class="modal-body pt-0">
+        <div class="bg-light rounded-3 p-3 mb-3">
           <div class="fw-semibold" id="mvt-designation"></div>
-          <small class="text-muted"><span id="mvt-location"></span> — REF: <code id="mvt-ref"></code></small>
+          <small class="text-muted">
+            <span id="mvt-location"></span> &nbsp;·&nbsp; <code id="mvt-ref"></code>
+          </small>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Type de mouvement</label>
-          <div class="d-flex gap-3">
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="mvtType" id="typeEntree" value="entrée" checked>
-              <label class="form-check-label text-success fw-semibold" for="typeEntree">
-                <i class="bi bi-plus-circle me-1"></i>Entrée
-              </label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="mvtType" id="typeSortie" value="sortie">
-              <label class="form-check-label text-danger fw-semibold" for="typeSortie">
-                <i class="bi bi-dash-circle me-1"></i>Sortie
-              </label>
-            </div>
-          </div>
+
+        <label class="form-label fw-semibold small text-uppercase" style="letter-spacing:.04em;color:#95a5a6">
+          Type de mouvement
+        </label>
+        <div class="d-flex gap-2 mb-3">
+          <input type="radio" class="btn-check" name="mvtType" id="typeEntree" value="entrée" checked>
+          <label class="btn btn-outline-success flex-fill" for="typeEntree">
+            <i class="bi bi-plus-circle me-1"></i>Entrée
+          </label>
+          <input type="radio" class="btn-check" name="mvtType" id="typeSortie" value="sortie">
+          <label class="btn btn-outline-danger flex-fill" for="typeSortie">
+            <i class="bi bi-dash-circle me-1"></i>Sortie
+          </label>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Quantité</label>
-          <input type="number" id="mvtQty" class="form-control" min="1" value="1">
-        </div>
-        <div class="mb-2">
-          <label class="form-label fw-semibold">Notes <small class="text-muted">(optionnel)</small></label>
-          <textarea id="mvtNotes" class="form-control" rows="2" placeholder="Raison du mouvement…"></textarea>
-        </div>
-        <div id="mvtAlert" class="alert d-none mt-2 mb-0"></div>
+
+        <label class="form-label fw-semibold small text-uppercase" style="letter-spacing:.04em;color:#95a5a6">
+          Quantité
+        </label>
+        <input type="number" id="mvtQty" class="form-control mb-3" min="1" value="1">
+
+        <label class="form-label fw-semibold small text-uppercase" style="letter-spacing:.04em;color:#95a5a6">
+          Notes <span class="text-muted fw-normal">(optionnel)</span>
+        </label>
+        <textarea id="mvtNotes" class="form-control" rows="2"
+                  placeholder="Raison, destination, source…"></textarea>
+
+        <div id="mvtAlert" class="alert d-none mt-3 mb-0 py-2"></div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <button type="button" class="btn btn-primary" id="btnSaveMvt">
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger px-4" id="btnSaveMvt">
           <i class="bi bi-check-lg me-1"></i>Confirmer
         </button>
       </div>
     </div>
   </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -202,53 +213,49 @@ $(document).ready(function () {
     pageLength: 25,
     order: [[3, 'asc'], [1, 'asc']],
     language: {
-      search: 'Recherche rapide:',
+      search: '', searchPlaceholder: 'Recherche rapide…',
       lengthMenu: 'Afficher _MENU_ entrées',
       info: '_START_–_END_ sur _TOTAL_',
-      paginate: { previous: '‹', next: '›' }
+      paginate: { previous: '‹', next: '›' },
+      emptyTable: 'Aucun article trouvé'
     },
     columnDefs: [{ orderable: false, targets: [7, 8] }]
   });
 });
 
-// Reload rooms when location changes
 document.getElementById('locationSelect').addEventListener('change', function () {
   document.getElementById('filterForm').submit();
 });
 
-// Populate modal
 let currentRow = null;
 document.querySelectorAll('.btn-mvt').forEach(btn => {
   btn.addEventListener('click', function () {
     document.getElementById('mvt-designation').textContent = this.dataset.designation;
-    document.getElementById('mvt-location').textContent = this.dataset.location;
-    document.getElementById('mvt-ref').textContent = this.dataset.ref;
-    document.getElementById('mvtQty').value = 1;
+    document.getElementById('mvt-location').textContent   = this.dataset.location;
+    document.getElementById('mvt-ref').textContent        = this.dataset.ref;
+    document.getElementById('mvtQty').value   = 1;
     document.getElementById('mvtNotes').value = '';
     document.getElementById('typeEntree').checked = true;
-    document.getElementById('mvtAlert').className = 'alert d-none mt-2 mb-0';
+    document.getElementById('mvtAlert').className = 'alert d-none mt-3 mb-0 py-2';
     currentRow = {
-      ref: this.dataset.ref,
-      location: this.dataset.location,
+      ref: this.dataset.ref, location: this.dataset.location,
       designation: this.dataset.designation,
-      qty: parseInt(this.dataset.qty) || 0,
-      rowIndex: this.dataset.row,
+      qty: parseInt(this.dataset.qty) || 0, rowIndex: this.dataset.row,
     };
   });
 });
 
 document.getElementById('btnSaveMvt').addEventListener('click', async function () {
-  const type = document.querySelector('input[name="mvtType"]:checked').value;
+  const type     = document.querySelector('input[name="mvtType"]:checked').value;
   const quantity = parseInt(document.getElementById('mvtQty').value);
-  const notes = document.getElementById('mvtNotes').value;
-  const alertEl = document.getElementById('mvtAlert');
+  const notes    = document.getElementById('mvtNotes').value;
+  const alertEl  = document.getElementById('mvtAlert');
 
   if (!quantity || quantity < 1) {
-    alertEl.className = 'alert alert-danger mt-2 mb-0';
+    alertEl.className = 'alert alert-danger mt-3 mb-0 py-2';
     alertEl.textContent = 'La quantité doit être ≥ 1.';
     return;
   }
-
   this.disabled = true;
   try {
     const res = await fetch('/api/movement', {
@@ -259,20 +266,18 @@ document.getElementById('btnSaveMvt').addEventListener('click', async function (
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erreur');
 
-    alertEl.className = 'alert alert-success mt-2 mb-0';
-    alertEl.textContent = `Mouvement enregistré. Nouvelle quantité: ${currentRow.qty + (type === 'entrée' ? quantity : -quantity)}`;
+    const newQty = currentRow.qty + (type === 'entrée' ? quantity : -quantity);
+    alertEl.className = 'alert alert-success mt-3 mb-0 py-2';
+    alertEl.textContent = `✓ Mouvement enregistré — nouveau stock : ${newQty}`;
 
-    // Update quantity cell in table
     const cell = document.getElementById(`qty-${currentRow.rowIndex}`);
     if (cell) {
-      const newQty = currentRow.qty + (type === 'entrée' ? quantity : -quantity);
-      cell.querySelector('.fw-bold').textContent = newQty;
-      currentRow.qty = newQty;
+      const span = cell.querySelector('.fw-bold');
+      if (span) { span.textContent = newQty; currentRow.qty = newQty; }
     }
-
-    setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('mvtModal')).hide(), 1200);
+    setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('mvtModal')).hide(), 1400);
   } catch (e) {
-    alertEl.className = 'alert alert-danger mt-2 mb-0';
+    alertEl.className = 'alert alert-danger mt-3 mb-0 py-2';
     alertEl.textContent = e.message;
   } finally {
     this.disabled = false;

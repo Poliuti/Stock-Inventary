@@ -1,93 +1,91 @@
 {% extends "base.html" %}
-{% block title %}Bibliothèque — Stock NGO{% endblock %}
+{% block title %}Bibliothèque — La Vita per Te{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center mb-4">
-  <h2 class="mb-0 fw-bold"><i class="bi bi-book me-2 text-primary"></i>Bibliothèque</h2>
-  <span class="badge bg-primary ms-3 fs-6">{{ books | length }} livres</span>
+<div class="page-header mb-4">
+  <h2 class="page-title"><i class="bi bi-book me-2"></i>Bibliothèque</h2>
+  <p class="page-subtitle">{{ books | length }} livre{{ 's' if books|length != 1 }} dans le catalogue</p>
 </div>
 
-<div class="row g-4">
-
-  <!-- Active loans -->
-  {% if loans %}
-  <div class="col-12">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-warning d-flex align-items-center">
-        <i class="bi bi-clock-history me-2"></i>
-        <strong>Prêts actifs</strong>
-        <span class="badge bg-white text-warning ms-auto">{{ loans | length }}</span>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Code</th><th>Titre</th><th>Emprunteur</th>
-                <th>Date prêt</th><th>Échéance</th><th>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for l in loans %}
-              <tr>
-                <td><code>{{ l.code }}</code></td>
-                <td class="fw-semibold">{{ l.title }}</td>
-                <td>{{ l.borrower or '—' }}</td>
-                <td><small>{{ l.loan_date }}</small></td>
-                <td><small>{{ l.due_date }}</small></td>
-                <td>
-                  <span class="badge {% if l.loan_status == 'SCADUTO' %}bg-danger{% else %}bg-success{% endif %}">
-                    {{ l.loan_status or 'Actif' }}
-                  </span>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+{% if loans %}
+<div class="dash-card mb-4">
+  <div class="dash-card-header header-orange">
+    <i class="bi bi-clock-history me-2"></i>Prêts actifs
+    <span class="badge ms-auto" style="background:#fff;color:#e67e22">{{ loans | length }}</span>
   </div>
-  {% endif %}
-
-  <!-- Books catalog -->
-  <div class="col-12">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header"><strong><i class="bi bi-collection me-2"></i>Catalogue</strong></div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table id="bookTable" class="table table-sm table-hover mb-0">
-            <thead class="table-dark">
-              <tr>
-                <th>Code</th><th>Titre</th><th>Auteur</th>
-                <th>Catégorie</th><th>Langue</th><th>Statut</th><th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for b in books %}
-              <tr>
-                <td><code>{{ b.code }}</code></td>
-                <td class="fw-semibold">{{ b.title }}</td>
-                <td>{{ b.author or '—' }}</td>
-                <td><span class="badge bg-secondary-subtle text-secondary">{{ b.category }}</span></td>
-                <td>{{ b.language }}</td>
-                <td>
-                  <span class="badge {% if b.status == 'Disponibile' %}bg-success
-                    {% elif b.status == 'In Prestito' %}bg-warning text-dark
-                    {% else %}bg-secondary{% endif %}">
-                    {{ b.status or '—' }}
-                  </span>
-                </td>
-                <td><small class="text-muted">{{ b.notes }}</small></td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead style="background:#2c3e50;color:#fff">
+        <tr>
+          <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;border:none">Code</th>
+          <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;border:none">Titre</th>
+          <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;border:none">Emprunteur</th>
+          <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;border:none">Date prêt</th>
+          <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;border:none">Échéance</th>
+          <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;border:none">Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in loans %}
+        <tr>
+          <td><code class="small text-muted">{{ l.code }}</code></td>
+          <td class="fw-semibold">{{ l.title }}</td>
+          <td>{{ l.borrower or '—' }}</td>
+          <td><small>{{ l.loan_date }}</small></td>
+          <td><small>{{ l.due_date }}</small></td>
+          <td>
+            <span class="badge {% if l.loan_status == 'SCADUTO' %}bg-danger{% else %}bg-success{% endif %}"
+                  style="font-size:.78rem">
+              {{ l.loan_status or 'Actif' }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+</div>
+{% endif %}
 
+<div class="dash-card">
+  <div class="dash-card-header">
+    <i class="bi bi-collection me-2"></i>Catalogue complet
+  </div>
+  <div class="table-responsive">
+    <table id="bookTable" class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Code</th><th>Titre</th><th>Auteur</th>
+          <th>Catégorie</th><th>Langue</th><th>Statut</th><th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in books %}
+        <tr>
+          <td><code class="small text-muted">{{ b.code }}</code></td>
+          <td class="fw-semibold">{{ b.title }}</td>
+          <td>{{ b.author or '—' }}</td>
+          <td>
+            <span class="badge rounded-pill bg-light text-secondary border" style="font-size:.75rem">
+              {{ b.category }}
+            </span>
+          </td>
+          <td><small>{{ b.language }}</small></td>
+          <td>
+            <span class="badge
+              {% if b.status == 'Disponibile' %}bg-success
+              {% elif b.status == 'In Prestito' %}bg-warning text-dark
+              {% else %}bg-secondary{% endif %}"
+              style="font-size:.78rem">
+              {{ b.status or '—' }}
+            </span>
+          </td>
+          <td><small class="text-muted">{{ b.notes }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
 
@@ -97,7 +95,7 @@ $(document).ready(function () {
   $('#bookTable').DataTable({
     pageLength: 25,
     language: {
-      search: 'Recherche:',
+      search: '', searchPlaceholder: 'Recherche…',
       lengthMenu: 'Afficher _MENU_',
       info: '_START_–_END_ / _TOTAL_',
       paginate: { previous: '‹', next: '›' }

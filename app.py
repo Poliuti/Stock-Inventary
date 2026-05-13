@@ -16,7 +16,8 @@ LOCATION_LABELS = {
 @app.route("/")
 def dashboard():
     items = load_all_inventory()
-    stats = get_stats(items)
+    movements = load_movements()
+    stats = get_stats(items, movements)
     alerts = load_alerts()
     _, loans = load_biblioteca()
     overdue = [l for l in loans if l.get("loan_status") == "SCADUTO"]

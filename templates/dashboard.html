@@ -1,192 +1,307 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Stock NGO{% endblock %}
+{% block title %}Dashboard — La Vita per Te{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center mb-4">
-  <h2 class="mb-0 fw-bold"><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h2>
+<div class="page-header mb-4">
+  <h2 class="page-title"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+  <p class="page-subtitle">Vue d'ensemble de l'inventaire — tous centres confondus</p>
 </div>
 
-<!-- Stats cards -->
+<!-- Stat cards -->
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="card stat-card border-0 shadow-sm h-100">
-      <div class="card-body">
-        <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-boxes"></i></div>
-        <div class="stat-value">{{ stats.total }}</div>
-        <div class="stat-label">Articles total</div>
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background:#fde8e8;color:#c0392b">
+        <i class="bi bi-boxes"></i>
       </div>
+      <div class="stat-card-value">{{ stats.total }}</div>
+      <div class="stat-card-label">Articles total</div>
     </div>
   </div>
+  {% set loc_styles = {
+    'Rex':     ('bg:#e8f5e9', '#27ae60', 'bi-building'),
+    'Ankofafa':('bg:#fff8e1', '#f39c12', 'bi-building'),
+    'Fille':   ('bg:#e3f2fd', '#2980b9', 'bi-building'),
+  } %}
   {% for loc, count in stats.by_location.items() %}
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-lg-2">
     <a href="/inventory?location={{ loc }}" class="text-decoration-none">
-      <div class="card stat-card border-0 shadow-sm h-100 stat-card-hover">
-        <div class="card-body">
-          <div class="stat-icon
-            {% if loc == 'Rex' %}bg-success-subtle text-success
-            {% elif loc == 'Ankofafa' %}bg-warning-subtle text-warning
-            {% else %}bg-info-subtle text-info{% endif %}">
-            <i class="bi bi-building"></i>
-          </div>
-          <div class="stat-value">{{ count }}</div>
-          <div class="stat-label">{{ location_labels.get(loc, loc) }}</div>
+      <div class="stat-card stat-card-link">
+        <div class="stat-card-icon
+          {% if loc == 'Rex' %}icon-green
+          {% elif loc == 'Ankofafa' %}icon-yellow
+          {% else %}icon-blue{% endif %}">
+          <i class="bi bi-building"></i>
         </div>
+        <div class="stat-card-value">{{ count }}</div>
+        <div class="stat-card-label">{{ location_labels.get(loc, loc) }}</div>
       </div>
     </a>
   </div>
   {% endfor %}
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="stat-card-icon icon-red">
+        <i class="bi bi-exclamation-triangle"></i>
+      </div>
+      <div class="stat-card-value">{{ alerts | length }}</div>
+      <div class="stat-card-label">Alertes matériel</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="stat-card-icon icon-orange">
+        <i class="bi bi-arrow-down-circle"></i>
+      </div>
+      <div class="stat-card-value">{{ stats.low_stock | length }}</div>
+      <div class="stat-card-label">Stock bas</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="stat-card">
+      <div class="stat-card-icon icon-purple">
+        <i class="bi bi-book"></i>
+      </div>
+      <div class="stat-card-value">{{ overdue_loans | length }}</div>
+      <div class="stat-card-label">Prêts en retard</div>
+    </div>
+  </div>
 </div>
 
-<div class="row g-4">
-
-  <!-- Alerts -->
-  <div class="col-lg-6">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-danger text-white d-flex align-items-center">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <strong>Matériel à contrôler</strong>
+<!-- Alerts + panels row -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <div class="dash-card h-100">
+      <div class="dash-card-header header-red">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>Matériel à contrôler
         <span class="badge bg-white text-danger ms-auto">{{ alerts | length }}</span>
       </div>
-      <div class="card-body p-0" style="max-height:340px;overflow-y:auto">
+      <div class="dash-card-scroll">
         {% if alerts %}
-        <table class="table table-sm table-hover mb-0">
+        <table class="table table-sm table-hover mb-0 align-middle">
           <thead class="table-light sticky-top">
-            <tr>
-              <th>Centre</th>
-              <th>Type</th>
-              <th>Article</th>
-            </tr>
+            <tr><th>Centre</th><th>Type</th><th>Article</th></tr>
           </thead>
           <tbody>
             {% for a in alerts %}
             <tr>
-              <td><span class="badge
-                {% if a.location == 'Ankofafa' %}bg-warning text-dark
-                {% else %}bg-info text-dark{% endif %}">
-                {{ a.location }}
-              </span></td>
-              <td><small class="text-muted">{{ a.type }}</small></td>
-              <td>{{ a.item }}</td>
+              <td>
+                <span class="loc-badge
+                  {% if a.location == 'Ankofafa' %}loc-ankofafa
+                  {% else %}loc-fille{% endif %}">
+                  {{ a.location }}
+                </span>
+              </td>
+              <td><span class="text-muted small">{{ a.type }}</span></td>
+              <td class="fw-medium">{{ a.item }}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
         {% else %}
-        <div class="p-4 text-center text-muted">
-          <i class="bi bi-check-circle fs-2 text-success"></i>
-          <p class="mt-2 mb-0">Aucune alerte</p>
-        </div>
+        <div class="empty-state"><i class="bi bi-check-circle-fill text-success fs-2"></i><p>Aucune alerte</p></div>
         {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Low stock -->
-  <div class="col-lg-3">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-warning d-flex align-items-center">
-        <i class="bi bi-arrow-down-circle-fill me-2"></i>
-        <strong>Stock bas</strong>
-        <span class="badge bg-white text-warning ms-auto">{{ stats.low_stock | length }}</span>
-      </div>
-      <div class="card-body p-0" style="max-height:340px;overflow-y:auto">
-        {% if stats.low_stock %}
-        <ul class="list-group list-group-flush">
-          {% for item in stats.low_stock %}
-          <li class="list-group-item py-2">
-            <div class="fw-semibold small">{{ item.designation[:40] }}</div>
-            <div class="d-flex justify-content-between">
-              <small class="text-muted">{{ item.location }}</small>
-              <small class="text-danger fw-bold">{{ item.quantity }} / min {{ item.min_quantity }}</small>
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="p-4 text-center text-muted">
-          <i class="bi bi-check-circle fs-2 text-success"></i>
-          <p class="mt-2 mb-0">OK</p>
+  <div class="col-lg-4">
+    <div class="row g-3 h-100">
+      <div class="col-12">
+        <div class="dash-card h-100">
+          <div class="dash-card-header header-orange">
+            <i class="bi bi-arrow-down-circle-fill me-2"></i>Stock bas
+            <span class="badge bg-white text-warning ms-auto">{{ stats.low_stock | length }}</span>
+          </div>
+          <div class="dash-card-scroll" style="max-height:150px">
+            {% if stats.low_stock %}
+            <ul class="list-unstyled mb-0">
+              {% for item in stats.low_stock %}
+              <li class="px-3 py-2 border-bottom">
+                <div class="fw-medium small">{{ item.designation[:38] }}</div>
+                <div class="d-flex justify-content-between">
+                  <small class="text-muted">{{ item.location }}</small>
+                  <small class="text-danger fw-bold">{{ item.quantity }} / min {{ item.min_quantity }}</small>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty-state py-3"><i class="bi bi-check-circle-fill text-success"></i><p class="small mb-0 mt-1">OK</p></div>
+            {% endif %}
+          </div>
         </div>
-        {% endif %}
+      </div>
+      <div class="col-12">
+        <div class="dash-card h-100">
+          <div class="dash-card-header header-purple">
+            <i class="bi bi-book-fill me-2"></i>Prêts en retard
+            <span class="badge bg-white text-secondary ms-auto">{{ overdue_loans | length }}</span>
+          </div>
+          <div class="dash-card-scroll" style="max-height:150px">
+            {% if overdue_loans %}
+            <ul class="list-unstyled mb-0">
+              {% for l in overdue_loans %}
+              <li class="px-3 py-2 border-bottom">
+                <div class="fw-medium small">{{ l.title[:38] }}</div>
+                <small class="text-danger">{{ l.due_date }}</small>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty-state py-3"><i class="bi bi-check-circle-fill text-success"></i><p class="small mb-0 mt-1">Aucun retard</p></div>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Overdue loans -->
-  <div class="col-lg-3">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-secondary text-white d-flex align-items-center">
-        <i class="bi bi-book-fill me-2"></i>
-        <strong>Prêts en retard</strong>
-        <span class="badge bg-white text-secondary ms-auto">{{ overdue_loans | length }}</span>
-      </div>
-      <div class="card-body p-0" style="max-height:340px;overflow-y:auto">
-        {% if overdue_loans %}
-        <ul class="list-group list-group-flush">
-          {% for l in overdue_loans %}
-          <li class="list-group-item py-2">
-            <div class="fw-semibold small">{{ l.title[:40] }}</div>
-            <small class="text-danger">Échéance: {{ l.due_date }}</small>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="p-4 text-center text-muted">
-          <i class="bi bi-check-circle fs-2 text-success"></i>
-          <p class="mt-2 mb-0">Aucun retard</p>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- Categories chart -->
+<!-- Charts row 1 -->
+<div class="row g-3 mb-3">
   <div class="col-lg-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header"><strong><i class="bi bi-pie-chart me-2"></i>Par catégorie</strong></div>
-      <div class="card-body d-flex justify-content-center">
-        <canvas id="catChart" height="200"></canvas>
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <i class="bi bi-bar-chart-horizontal me-2"></i>Top catégories
+        <small class="text-muted ms-2">articles par type</small>
+      </div>
+      <div class="p-3">
+        <canvas id="catChart" height="260"></canvas>
       </div>
     </div>
   </div>
-
-  <!-- Location chart -->
   <div class="col-lg-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header"><strong><i class="bi bi-bar-chart me-2"></i>Par centre</strong></div>
-      <div class="card-body d-flex justify-content-center">
-        <canvas id="locChart" height="200"></canvas>
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <i class="bi bi-bar-chart-horizontal me-2"></i>Top emplacements
+        <small class="text-muted ms-2">articles par salle / zone</small>
+      </div>
+      <div class="p-3">
+        <canvas id="roomChart" height="260"></canvas>
       </div>
     </div>
   </div>
+</div>
 
+<!-- Charts row 2 -->
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <i class="bi bi-pie-chart me-2"></i>État des articles
+        <small class="text-muted ms-2">Ankofafa + Fille</small>
+      </div>
+      <div class="p-3 d-flex justify-content-center">
+        <canvas id="condChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <i class="bi bi-activity me-2"></i>Mouvements de stock
+        <small class="text-muted ms-2">entrées & sorties enregistrées</small>
+      </div>
+      <div class="p-3">
+        {% if stats.movement_by_day %}
+        <canvas id="mvtChart" height="220"></canvas>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="bi bi-arrow-left-right fs-2 text-muted"></i>
+          <p class="text-muted mt-2 mb-1">Aucun mouvement enregistré</p>
+          <a href="/inventory" class="btn btn-sm btn-danger">Enregistrer un mouvement</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script>
-const catData = {{ stats.by_category | tojson }};
-const locData = {{ stats.by_location | tojson }};
+Chart.defaults.font.family = 'Arial, sans-serif';
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#6c757d';
 
-const palette = ['#0d6efd','#198754','#ffc107','#dc3545','#0dcaf0','#6f42c1','#fd7e14','#20c997','#6c757d','#d63384'];
+const catData  = {{ stats.by_category | tojson }};
+const roomData = {{ stats.by_room | tojson }};
+const condData = {{ stats.by_condition | tojson }};
+const mvtData  = {{ stats.movement_by_day | tojson }};
 
-new Chart(document.getElementById('catChart'), {
+// Palette
+const RED    = '#c0392b';
+const ORANGE = '#e67e22';
+const GREEN  = '#27ae60';
+const BLUE   = '#2980b9';
+const YELLOW = '#f39c12';
+const PURPLE = '#8e44ad';
+const barPalette = [RED, ORANGE, '#e74c3c','#d35400','#c0392b','#e67e22','#f39c12','#2ecc71','#27ae60','#2980b9',BLUE,PURPLE];
+
+// Horizontal bar helper
+function hBar(id, labels, values, colors) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors || RED,
+        borderRadius: 4, barThickness: 16 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#f0f0f0' } },
+        y: { grid: { display: false } }
+      },
+      maintainAspectRatio: false
+    }
+  });
+}
+
+hBar('catChart',  Object.keys(catData),  Object.values(catData),  barPalette);
+hBar('roomChart', Object.keys(roomData), Object.values(roomData), BLUE);
+
+// Condition doughnut
+const condColors = { 'Bon': GREEN, 'Usé': YELLOW, 'Cassé': RED, 'À réparer': ORANGE,
+  'À repeindre': '#16a085', 'Non renseigné': '#bdc3c7' };
+const condLabels = Object.keys(condData);
+const condBg = condLabels.map(l => condColors[l] || '#95a5a6');
+new Chart(document.getElementById('condChart'), {
   type: 'doughnut',
   data: {
-    labels: Object.keys(catData),
-    datasets: [{ data: Object.values(catData), backgroundColor: palette, borderWidth: 1 }]
+    labels: condLabels,
+    datasets: [{ data: Object.values(condData), backgroundColor: condBg,
+      borderWidth: 2, borderColor: '#fff' }]
   },
-  options: { plugins: { legend: { position: 'right' } }, maintainAspectRatio: false }
+  options: {
+    plugins: { legend: { position: 'right', labels: { padding: 12, boxWidth: 12 } } },
+    cutout: '60%',
+    maintainAspectRatio: false
+  }
 });
 
-new Chart(document.getElementById('locChart'), {
-  type: 'bar',
-  data: {
-    labels: Object.keys(locData).map(k => ({ Rex:'Centre Rex', Ankofafa:'Ankofafa', Fille:'Miaraka Fille' }[k] || k)),
-    datasets: [{ label: 'Articles', data: Object.values(locData), backgroundColor: ['#198754','#ffc107','#0dcaf0'] }]
-  },
-  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-});
+// Movements chart (if data exists)
+const mvtEl = document.getElementById('mvtChart');
+if (mvtEl && Object.keys(mvtData).length) {
+  const dates = Object.keys(mvtData).sort();
+  new Chart(mvtEl, {
+    type: 'bar',
+    data: {
+      labels: dates,
+      datasets: [
+        { label: 'Entrées',  data: dates.map(d => mvtData[d]['entrée']  || 0), backgroundColor: GREEN,  borderRadius: 3 },
+        { label: 'Sorties', data: dates.map(d => mvtData[d]['sortie'] || 0), backgroundColor: RED,    borderRadius: 3 }
+      ]
+    },
+    options: {
+      plugins: { legend: { position: 'top' } },
+      scales: { x: { stacked: false, grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f0f0f0' } } },
+      maintainAspectRatio: false
+    }
+  });
+}
 </script>
 {% endblock %}
