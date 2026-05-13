@@ -14,20 +14,20 @@
 </div>
 
 <!-- Filters -->
-<form method="get" class="card border-0 shadow-sm mb-4">
+<form method="get" id="filterForm" class="card border-0 shadow-sm mb-4">
   <div class="card-body">
     <div class="row g-2 align-items-end">
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-3">
         <label class="form-label small fw-semibold">Recherche</label>
         <div class="input-group">
           <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="text" name="q" class="form-control" placeholder="Désignation, REF, salle…" value="{{ search }}">
+          <input type="text" name="q" class="form-control" placeholder="Désignation, REF…" value="{{ search }}">
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
         <label class="form-label small fw-semibold">Centre</label>
-        <select name="location" class="form-select">
-          <option value="">Tous les centres</option>
+        <select name="location" id="locationSelect" class="form-select">
+          <option value="">Tous</option>
           {% for loc in locations %}
           <option value="{{ loc }}" {% if loc == selected_location %}selected{% endif %}>
             {{ location_labels.get(loc, loc) }}
@@ -35,7 +35,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
         <label class="form-label small fw-semibold">Catégorie</label>
         <select name="category" class="form-select">
           <option value="">Toutes</option>
@@ -44,7 +44,16 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-12 col-md-2 d-flex gap-2">
+      <div class="col-6 col-md-3">
+        <label class="form-label small fw-semibold">Salle / Emplacement</label>
+        <select name="room" class="form-select">
+          <option value="">Toutes les salles</option>
+          {% for r in rooms %}
+          <option value="{{ r }}" {% if r == selected_room %}selected{% endif %}>{{ r }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2 d-flex gap-2">
         <button type="submit" class="btn btn-primary flex-fill">
           <i class="bi bi-funnel me-1"></i>Filtrer
         </button>
@@ -68,9 +77,10 @@
             <th>Catégorie</th>
             <th>Centre</th>
             <th>Salle</th>
-            <th>Qté</th>
+            <th>Stock</th>
             <th>État</th>
             <th>Notes</th>
+            <th class="text-center">Mvt</th>
           </tr>
         </thead>
         <tbody>
@@ -91,7 +101,7 @@
               </span>
             </td>
             <td><small>{{ item.room }}</small></td>
-            <td class="text-center">
+            <td class="text-center" id="qty-{{ loop.index }}">
               {% if item.quantity is not none %}
                 <span class="fw-bold
                   {% if item.min_quantity and item.quantity < item.min_quantity %}text-danger{% endif %}">
@@ -106,7 +116,7 @@
               {% if item.condition %}
               <span class="badge
                 {% if item.condition in ['Bon', 'Buono', 'bon'] %}bg-success
-                {% elif item.condition in ['Cassé', 'Cass'] or 'cass' in item.condition.lower() %}bg-danger
+                {% elif 'cass' in item.condition.lower() %}bg-danger
                 {% elif 'réparer' in item.condition.lower() or 'riparare' in item.condition.lower() %}bg-warning text-dark
                 {% else %}bg-light text-dark border{% endif %}">
                 {{ item.condition }}
@@ -114,6 +124,17 @@
               {% else %}—{% endif %}
             </td>
             <td><small class="text-muted">{{ item.notes[:60] }}{% if item.notes|length > 60 %}…{% endif %}</small></td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline-primary py-0 px-2 btn-mvt"
+                data-ref="{{ item.ref }}"
+                data-location="{{ item.location }}"
+                data-designation="{{ item.designation }}"
+                data-qty="{{ item.quantity if item.quantity is not none else 0 }}"
+                data-row="{{ loop.index }}"
+                data-bs-toggle="modal" data-bs-target="#mvtModal">
+                <i class="bi bi-arrow-left-right"></i>
+              </button>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -121,6 +142,57 @@
     </div>
   </div>
 </div>
+
+<!-- Movement Modal -->
+<div class="modal fade" id="mvtModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2"></i>Enregistrer un mouvement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <div class="fw-semibold" id="mvt-designation"></div>
+          <small class="text-muted"><span id="mvt-location"></span> — REF: <code id="mvt-ref"></code></small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Type de mouvement</label>
+          <div class="d-flex gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="mvtType" id="typeEntree" value="entrée" checked>
+              <label class="form-check-label text-success fw-semibold" for="typeEntree">
+                <i class="bi bi-plus-circle me-1"></i>Entrée
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="mvtType" id="typeSortie" value="sortie">
+              <label class="form-check-label text-danger fw-semibold" for="typeSortie">
+                <i class="bi bi-dash-circle me-1"></i>Sortie
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Quantité</label>
+          <input type="number" id="mvtQty" class="form-control" min="1" value="1">
+        </div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Notes <small class="text-muted">(optionnel)</small></label>
+          <textarea id="mvtNotes" class="form-control" rows="2" placeholder="Raison du mouvement…"></textarea>
+        </div>
+        <div id="mvtAlert" class="alert d-none mt-2 mb-0"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" id="btnSaveMvt">
+          <i class="bi bi-check-lg me-1"></i>Confirmer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -135,8 +207,76 @@ $(document).ready(function () {
       info: '_START_–_END_ sur _TOTAL_',
       paginate: { previous: '‹', next: '›' }
     },
-    columnDefs: [{ orderable: false, targets: [7] }]
+    columnDefs: [{ orderable: false, targets: [7, 8] }]
   });
+});
+
+// Reload rooms when location changes
+document.getElementById('locationSelect').addEventListener('change', function () {
+  document.getElementById('filterForm').submit();
+});
+
+// Populate modal
+let currentRow = null;
+document.querySelectorAll('.btn-mvt').forEach(btn => {
+  btn.addEventListener('click', function () {
+    document.getElementById('mvt-designation').textContent = this.dataset.designation;
+    document.getElementById('mvt-location').textContent = this.dataset.location;
+    document.getElementById('mvt-ref').textContent = this.dataset.ref;
+    document.getElementById('mvtQty').value = 1;
+    document.getElementById('mvtNotes').value = '';
+    document.getElementById('typeEntree').checked = true;
+    document.getElementById('mvtAlert').className = 'alert d-none mt-2 mb-0';
+    currentRow = {
+      ref: this.dataset.ref,
+      location: this.dataset.location,
+      designation: this.dataset.designation,
+      qty: parseInt(this.dataset.qty) || 0,
+      rowIndex: this.dataset.row,
+    };
+  });
+});
+
+document.getElementById('btnSaveMvt').addEventListener('click', async function () {
+  const type = document.querySelector('input[name="mvtType"]:checked').value;
+  const quantity = parseInt(document.getElementById('mvtQty').value);
+  const notes = document.getElementById('mvtNotes').value;
+  const alertEl = document.getElementById('mvtAlert');
+
+  if (!quantity || quantity < 1) {
+    alertEl.className = 'alert alert-danger mt-2 mb-0';
+    alertEl.textContent = 'La quantité doit être ≥ 1.';
+    return;
+  }
+
+  this.disabled = true;
+  try {
+    const res = await fetch('/api/movement', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...currentRow, type, quantity, notes }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur');
+
+    alertEl.className = 'alert alert-success mt-2 mb-0';
+    alertEl.textContent = `Mouvement enregistré. Nouvelle quantité: ${currentRow.qty + (type === 'entrée' ? quantity : -quantity)}`;
+
+    // Update quantity cell in table
+    const cell = document.getElementById(`qty-${currentRow.rowIndex}`);
+    if (cell) {
+      const newQty = currentRow.qty + (type === 'entrée' ? quantity : -quantity);
+      cell.querySelector('.fw-bold').textContent = newQty;
+      currentRow.qty = newQty;
+    }
+
+    setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('mvtModal')).hide(), 1200);
+  } catch (e) {
+    alertEl.className = 'alert alert-danger mt-2 mb-0';
+    alertEl.textContent = e.message;
+  } finally {
+    this.disabled = false;
+  }
 });
 </script>
 {% endblock %}

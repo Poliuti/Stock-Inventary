@@ -1,7 +1,45 @@
 import os
+import json
+from datetime import datetime
 import pandas as pd
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+MOVEMENTS_FILE = os.path.join(DATA_DIR, "movements.json")
+
+
+def load_movements():
+    if not os.path.exists(MOVEMENTS_FILE):
+        return []
+    with open(MOVEMENTS_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_movement(ref, location, designation, mov_type, quantity, notes=""):
+    movements = load_movements()
+    entry = {
+        "id": len(movements) + 1,
+        "ref": ref,
+        "location": location,
+        "designation": designation,
+        "type": mov_type,
+        "quantity": int(quantity),
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "notes": notes,
+    }
+    movements.append(entry)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(MOVEMENTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(movements, f, ensure_ascii=False, indent=2)
+    return entry
+
+
+def _get_adjustments():
+    adjustments = {}
+    for m in load_movements():
+        key = f"{m['location']}_{m['ref']}"
+        delta = m["quantity"] if m["type"] == "entrée" else -m["quantity"]
+        adjustments[key] = adjustments.get(key, 0) + delta
+    return adjustments
 
 
 def _clean_str(val):
@@ -104,10 +142,17 @@ def load_fille():
 
 
 def load_all_inventory():
+    adjustments = _get_adjustments()
     items = []
     for i, loader in enumerate([load_rex, load_ankofafa, load_fille]):
         for item in loader():
             item["id"] = f"{i}_{item['ref']}"
+            key = f"{item['location']}_{item['ref']}"
+            adj = adjustments.get(key, 0)
+            if adj:
+                base = item["quantity"] or 0
+                item["quantity"] = base + adj
+                item["current_stock"] = item["quantity"]
             items.append(item)
     return items
 
