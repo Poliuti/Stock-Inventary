@@ -190,10 +190,17 @@
     <div class="dash-card">
       <div class="dash-card-header">
         <i class="bi bi-pie-chart me-2"></i>État des articles
-        <small class="text-muted ms-2">Ankofafa + Fille</small>
+        <small class="text-muted ms-2">{{ stats.condition_rated_total }} articles — Ankofafa + Fille</small>
       </div>
-      <div class="p-3 d-flex justify-content-center">
-        <canvas id="condChart" height="220"></canvas>
+      <div class="p-3">
+        {% if stats.by_condition %}
+        <canvas id="condChart" height="230"></canvas>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="bi bi-clipboard-data fs-2 text-muted"></i>
+          <p class="text-muted mt-2 mb-0 small">Aucun état renseigné</p>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -205,7 +212,7 @@
       </div>
       <div class="p-3">
         {% if stats.movement_by_day %}
-        <canvas id="mvtChart" height="220"></canvas>
+        <canvas id="mvtChart" height="230"></canvas>
         {% else %}
         <div class="empty-state py-4">
           <i class="bi bi-arrow-left-right fs-2 text-muted"></i>
@@ -223,82 +230,207 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script>
 Chart.defaults.font.family = 'Arial, sans-serif';
-Chart.defaults.font.size = 12;
-Chart.defaults.color = '#6c757d';
+Chart.defaults.font.size   = 12;
+Chart.defaults.color       = '#555';
 
 const catData  = {{ stats.by_category | tojson }};
 const roomData = {{ stats.by_room | tojson }};
 const condData = {{ stats.by_condition | tojson }};
 const mvtData  = {{ stats.movement_by_day | tojson }};
 
-// Palette
-const RED    = '#c0392b';
-const ORANGE = '#e67e22';
-const GREEN  = '#27ae60';
-const BLUE   = '#2980b9';
-const YELLOW = '#f39c12';
-const PURPLE = '#8e44ad';
-const barPalette = [RED, ORANGE, '#e74c3c','#d35400','#c0392b','#e67e22','#f39c12','#2ecc71','#27ae60','#2980b9',BLUE,PURPLE];
+// ── Colour tokens ─────────────────────────────────────────
+const C = {
+  red:    '#c0392b', redLight:    'rgba(192,57,43,.15)',
+  orange: '#e67e22', orangeLight: 'rgba(230,126,34,.15)',
+  green:  '#27ae60', greenLight:  'rgba(39,174,96,.15)',
+  blue:   '#2980b9', blueLight:   'rgba(41,128,185,.15)',
+  teal:   '#16a085',
+  yellow: '#f1c40f',
+  purple: '#8e44ad',
+};
 
-// Horizontal bar helper
-function hBar(id, labels, values, colors) {
-  new Chart(document.getElementById(id), {
-    type: 'bar',
+// Stepped palette for bar charts (max contrast between adjacent bars)
+const BAR_PALETTE = [
+  C.red, C.blue, C.orange, C.teal, C.purple,
+  '#d35400','#2471a3','#1abc9c','#8e44ad','#f39c12','#27ae60','#c0392b'
+];
+
+// ── Shared chart options helpers ──────────────────────────
+const gridX  = { color: '#f0f0f0', drawBorder: false };
+const gridOff = { display: false };
+const noLegend = { legend: { display: false } };
+
+// ── 1. Top catégories — horizontal bar ───────────────────
+new Chart(document.getElementById('catChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(catData),
+    datasets: [{
+      data: Object.values(catData),
+      backgroundColor: Object.keys(catData).map((_, i) => BAR_PALETTE[i % BAR_PALETTE.length]),
+      borderRadius: 5,
+      barThickness: 18,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { ...noLegend,
+      tooltip: { callbacks: {
+        label: ctx => ` ${ctx.parsed.x} articles`
+      }}
+    },
+    scales: {
+      x: { beginAtZero: true, grid: gridX, ticks: { precision: 0 } },
+      y: { grid: gridOff, ticks: { font: { size: 11 } } }
+    },
+    maintainAspectRatio: false
+  }
+});
+
+// ── 2. Top emplacements — horizontal bar (monochrome blue gradient) ──
+const roomCount = Object.keys(roomData).length;
+new Chart(document.getElementById('roomChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(roomData),
+    datasets: [{
+      data: Object.values(roomData),
+      backgroundColor: Object.keys(roomData).map((_, i) => {
+        const alpha = 0.95 - (i / roomCount) * 0.55;
+        return `rgba(41,128,185,${alpha.toFixed(2)})`;
+      }),
+      borderRadius: 5,
+      barThickness: 18,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { ...noLegend,
+      tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} articles` }}
+    },
+    scales: {
+      x: { beginAtZero: true, grid: gridX, ticks: { precision: 0 } },
+      y: { grid: gridOff, ticks: { font: { size: 11 } } }
+    },
+    maintainAspectRatio: false
+  }
+});
+
+// ── 3. État des articles — doughnut ──────────────────────
+const COND_COLORS = {
+  'Bon':          { bg: '#27ae60', border: '#1e8449' },
+  'Usé':          { bg: '#f1c40f', border: '#d4ac0d' },
+  'Cassé':        { bg: '#e74c3c', border: '#c0392b' },
+  'À réparer':    { bg: '#e67e22', border: '#ca6f1e' },
+  'À repeindre':  { bg: '#3498db', border: '#2980b9' },
+};
+
+const condEl = document.getElementById('condChart');
+if (condEl && Object.keys(condData).length) {
+  const condLabels = Object.keys(condData);
+  const condBg     = condLabels.map(l => (COND_COLORS[l] || { bg: '#95a5a6' }).bg);
+  const condBorder = condLabels.map(l => (COND_COLORS[l] || { border: '#7f8c8d' }).border);
+  const total      = Object.values(condData).reduce((s, v) => s + v, 0);
+
+  new Chart(condEl, {
+    type: 'doughnut',
     data: {
-      labels,
-      datasets: [{ data: values, backgroundColor: colors || RED,
-        borderRadius: 4, barThickness: 16 }]
+      labels: condLabels,
+      datasets: [{
+        data: Object.values(condData),
+        backgroundColor: condBg,
+        borderColor: condBorder,
+        borderWidth: 2,
+        hoverOffset: 8,
+      }]
     },
     options: {
-      indexAxis: 'y',
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { beginAtZero: true, grid: { color: '#f0f0f0' } },
-        y: { grid: { display: false } }
+      cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            padding: 14, boxWidth: 13, boxHeight: 13,
+            font: { size: 12 },
+            generateLabels: chart => {
+              const ds = chart.data.datasets[0];
+              return chart.data.labels.map((lbl, i) => ({
+                text: `${lbl}  (${ds.data[i]})`,
+                fillStyle: ds.backgroundColor[i],
+                strokeStyle: ds.borderColor[i],
+                lineWidth: 1,
+                hidden: false,
+                index: i,
+              }));
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const pct = ((ctx.parsed / total) * 100).toFixed(1);
+              return `  ${ctx.label}: ${ctx.parsed} articles (${pct}%)`;
+            }
+          }
+        }
       },
       maintainAspectRatio: false
     }
   });
 }
 
-hBar('catChart',  Object.keys(catData),  Object.values(catData),  barPalette);
-hBar('roomChart', Object.keys(roomData), Object.values(roomData), BLUE);
-
-// Condition doughnut
-const condColors = { 'Bon': GREEN, 'Usé': YELLOW, 'Cassé': RED, 'À réparer': ORANGE,
-  'À repeindre': '#16a085', 'Non renseigné': '#bdc3c7' };
-const condLabels = Object.keys(condData);
-const condBg = condLabels.map(l => condColors[l] || '#95a5a6');
-new Chart(document.getElementById('condChart'), {
-  type: 'doughnut',
-  data: {
-    labels: condLabels,
-    datasets: [{ data: Object.values(condData), backgroundColor: condBg,
-      borderWidth: 2, borderColor: '#fff' }]
-  },
-  options: {
-    plugins: { legend: { position: 'right', labels: { padding: 12, boxWidth: 12 } } },
-    cutout: '60%',
-    maintainAspectRatio: false
-  }
-});
-
-// Movements chart (if data exists)
+// ── 4. Mouvements de stock — grouped bar ─────────────────
 const mvtEl = document.getElementById('mvtChart');
 if (mvtEl && Object.keys(mvtData).length) {
   const dates = Object.keys(mvtData).sort();
+  const entrées = dates.map(d => mvtData[d]['entrée']  || 0);
+  const sorties = dates.map(d => mvtData[d]['sortie']  || 0);
+  const maxVal  = Math.max(...entrées, ...sorties);
+
   new Chart(mvtEl, {
     type: 'bar',
     data: {
       labels: dates,
       datasets: [
-        { label: 'Entrées',  data: dates.map(d => mvtData[d]['entrée']  || 0), backgroundColor: GREEN,  borderRadius: 3 },
-        { label: 'Sorties', data: dates.map(d => mvtData[d]['sortie'] || 0), backgroundColor: RED,    borderRadius: 3 }
+        {
+          label: 'Entrées',
+          data: entrées,
+          backgroundColor: C.greenLight,
+          borderColor: C.green,
+          borderWidth: 2,
+          borderRadius: 6,
+          maxBarThickness: 56,
+        },
+        {
+          label: 'Sorties',
+          data: sorties,
+          backgroundColor: C.redLight,
+          borderColor: C.red,
+          borderWidth: 2,
+          borderRadius: 6,
+          maxBarThickness: 56,
+        }
       ]
     },
     options: {
-      plugins: { legend: { position: 'top' } },
-      scales: { x: { stacked: false, grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f0f0f0' } } },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { boxWidth: 12, boxHeight: 12, padding: 16, font: { size: 12 } }
+        },
+        tooltip: {
+          callbacks: { label: ctx => `  ${ctx.dataset.label}: ${ctx.parsed.y}` }
+        }
+      },
+      scales: {
+        x: { grid: gridOff, ticks: { font: { size: 11 } } },
+        y: {
+          beginAtZero: true,
+          max: Math.ceil(maxVal * 1.25) || 5,
+          grid: gridX,
+          ticks: { precision: 0 }
+        }
+      },
       maintainAspectRatio: false
     }
   });

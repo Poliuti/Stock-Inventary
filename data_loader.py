@@ -229,22 +229,50 @@ def load_biblioteca():
     return books, loans
 
 
+def _normalize_condition(raw):
+    if not raw or not raw.strip():
+        return "Non renseigné"
+    cl = raw.strip().lower()
+    if cl in ("bon", "buono", "bonne"):
+        return "Bon"
+    if "cass" in cl:
+        return "Cassé"
+    if "repeindre" in cl:
+        return "À repeindre"
+    if "r" in cl and ("parer" in cl or "parare" in cl):
+        return "À réparer"
+    if cl.startswith("us"):
+        return "Usé"
+    return raw.strip()
+
+
+CONDITION_ORDER = ["Bon", "Usé", "Cassé", "À réparer", "À repeindre"]
+
+
 def get_stats(items, movements=None):
     by_location = {}
     by_category = {}
     by_room = {}
-    by_condition = {}
+    by_condition_all = {}
 
     for item in items:
         loc = item["location"]
         cat = item["category"] or "Autre"
         room = item["room"] or "Non spécifié"
-        cond = (item.get("condition") or "").strip() or "Non renseigné"
+        cond = _normalize_condition(item.get("condition") or "")
 
         by_location[loc] = by_location.get(loc, 0) + 1
         by_category[cat] = by_category.get(cat, 0) + 1
         by_room[room] = by_room.get(room, 0) + 1
-        by_condition[cond] = by_condition.get(cond, 0) + 1
+        by_condition_all[cond] = by_condition_all.get(cond, 0) + 1
+
+    # Condition chart: only rated items, sorted by severity order
+    by_condition_rated = {
+        k: by_condition_all[k]
+        for k in CONDITION_ORDER
+        if k in by_condition_all
+    }
+    rated_total = sum(by_condition_rated.values())
 
     top_categories = dict(
         sorted(by_category.items(), key=lambda x: x[1], reverse=True)[:12]
@@ -279,7 +307,8 @@ def get_stats(items, movements=None):
         "by_location": by_location,
         "by_category": top_categories,
         "by_room": top_rooms,
-        "by_condition": by_condition,
+        "by_condition": by_condition_rated,
+        "condition_rated_total": rated_total,
         "low_stock": low_stock,
         "movement_by_day": movement_by_day,
     }
