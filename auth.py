@@ -1,14 +1,9 @@
-import os
-import json
 from functools import wraps
-from flask import redirect, url_for, abort
+from flask import abort
 from flask_login import LoginManager, UserMixin, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from db import get_db
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-USERS_FILE = os.path.join(DATA_DIR, "users.json")
-
-# Locations accessible per role
 ROLE_LOCATIONS = {
     "admin":      ["Rex", "Ankofafa", "Fille"],
     "educateur":  ["Ankofafa", "Fille"],
@@ -23,11 +18,11 @@ ROLE_LABELS = {
 
 
 class User(UserMixin):
-    def __init__(self, data):
-        self.id            = data["username"]
-        self.username      = data["username"]
-        self.role          = data["role"]
-        self.password_hash = data["password_hash"]
+    def __init__(self, username, role, password_hash):
+        self.id            = username
+        self.username      = username
+        self.role          = role
+        self.password_hash = password_hash
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -52,75 +47,61 @@ class User(UserMixin):
 # ── Persistence ───────────────────────────────────────────
 
 def load_users():
-    if not os.path.exists(USERS_FILE):
-        return _create_defaults()
-    with open(USERS_FILE, "r", encoding="utf-8") as f:
-        return {u["username"]: User(u) for u in json.load(f)}
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT username, role, password_hash FROM users ORDER BY username")
+            rows = cur.fetchall()
+    return {r["username"]: User(r["username"], r["role"], r["password_hash"]) for r in rows}
 
 
-def save_users(users_dict):
-    data = [
-        {"username": u.username, "role": u.role, "password_hash": u.password_hash}
-        for u in users_dict.values()
-    ]
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def _create_defaults():
-    defaults = [
-        ("admin",      "admin",     "Admin2024!"),
-        ("educateur",  "educateur", "Edu2024!"),
-        ("logistic",   "logistic",  "Log2024!"),
-    ]
-    users = {}
-    data  = []
-    for username, role, pwd in defaults:
-        row = {"username": username, "role": role,
-               "password_hash": generate_password_hash(pwd)}
-        users[username] = User(row)
-        data.append(row)
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    return users
-
-
-def get_user(user_id):
-    return load_users().get(user_id)
+def get_user(username):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT username, role, password_hash FROM users WHERE username = %s",
+                (username,)
+            )
+            row = cur.fetchone()
+    if not row:
+        return None
+    return User(row["username"], row["role"], row["password_hash"])
 
 
 def add_user(username, role, password):
-    users = load_users()
-    if username in users:
-        return False, "Nom d'utilisateur déjà existant"
-    row = {"username": username, "role": role,
-           "password_hash": generate_password_hash(password)}
-    users[username] = User(row)
-    save_users(users)
-    return True, None
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO users (username, role, password_hash) VALUES (%s, %s, %s)",
+                    (username, role, generate_password_hash(password))
+                )
+        return True, None
+    except Exception as e:
+        if "unique" in str(e).lower() or "duplicate" in str(e).lower():
+            return False, "Nom d'utilisateur déjà existant"
+        return False, str(e)
 
 
 def delete_user(username):
-    users = load_users()
-    if username not in users or users[username].role == "admin":
-        return False
-    del users[username]
-    save_users(users)
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT role FROM users WHERE username = %s", (username,))
+            row = cur.fetchone()
+            if not row or row["role"] == "admin":
+                return False
+            cur.execute("DELETE FROM users WHERE username = %s", (username,))
     return True
 
 
 def change_password(username, new_password):
-    users = load_users()
-    if username not in users:
-        return False
-    u = users[username]
-    row = {"username": u.username, "role": u.role,
-           "password_hash": generate_password_hash(new_password)}
-    users[username] = User(row)
-    save_users(users)
-    return True
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET password_hash = %s WHERE username = %s",
+                (generate_password_hash(new_password), username)
+            )
+            updated = cur.rowcount
+    return updated > 0
 
 
 # ── Flask-Login setup ─────────────────────────────────────
