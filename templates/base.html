@@ -42,32 +42,63 @@
           <ul class="dropdown-menu border-0 shadow">
             <li><a class="dropdown-item" href="/inventory"><i class="bi bi-grid me-2 text-muted"></i>Tout l'inventaire</a></li>
             <li><hr class="dropdown-divider mx-3 my-1"></li>
+            {% if 'Rex' in current_user.locations %}
             <li><a class="dropdown-item" href="/inventory?location=Rex">
               <span class="loc-dot bg-success me-2"></span>Centre Rex
             </a></li>
+            {% endif %}
+            {% if 'Ankofafa' in current_user.locations %}
             <li><a class="dropdown-item" href="/inventory?location=Ankofafa">
               <span class="loc-dot bg-warning me-2"></span>Centre Miaraka Ankofafa
             </a></li>
+            {% endif %}
+            {% if 'Fille' in current_user.locations %}
             <li><a class="dropdown-item" href="/inventory?location=Fille">
               <span class="loc-dot bg-info me-2"></span>Centre Miaraka Fille
             </a></li>
+            {% endif %}
           </ul>
         </li>
+        {% if current_user.can_access_library %}
         <li class="nav-item">
           <a class="nav-link nav-pill {% if request.endpoint == 'library' %}active{% endif %}" href="/library">
             <i class="bi bi-book me-1"></i>Bibliothèque
           </a>
         </li>
+        {% endif %}
         <li class="nav-item">
           <a class="nav-link nav-pill {% if request.endpoint == 'mouvements' %}active{% endif %}" href="/mouvements">
             <i class="bi bi-arrow-left-right me-1"></i>Mouvements
           </a>
         </li>
+        {% if current_user.is_admin %}
+        <li class="nav-item">
+          <a class="nav-link nav-pill {% if request.endpoint == 'admin_users' %}active{% endif %}" href="/admin/users">
+            <i class="bi bi-people me-1"></i>Utilisateurs
+          </a>
+        </li>
+        {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-2">
         <button class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#helpModal">
           <i class="bi bi-question-circle me-1"></i>Aide
         </button>
+        <!-- User info + logout -->
+        <div class="d-flex align-items-center gap-2 ms-1">
+          <div class="user-avatar
+            {% if current_user.role == 'admin' %}avatar-red
+            {% elif current_user.role == 'educateur' %}avatar-blue
+            {% else %}avatar-green{% endif %}">
+            {{ current_user.username[0].upper() }}
+          </div>
+          <div class="d-none d-md-block" style="line-height:1.2">
+            <div style="font-size:.82rem;font-weight:600;color:#2c3e50">{{ current_user.username }}</div>
+            <div style="font-size:.72rem;color:#95a5a6">{{ current_user.role_label }}</div>
+          </div>
+          <a href="/logout" class="btn btn-sm btn-outline-danger rounded-pill ms-1" title="Se déconnecter">
+            <i class="bi bi-box-arrow-right"></i>
+          </a>
+        </div>
       </div>
     </div>
   </div>
