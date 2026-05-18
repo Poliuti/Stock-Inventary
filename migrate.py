@@ -294,15 +294,15 @@ def run():
                 (uname, role, generate_password_hash(pwd))
             )
         conn.commit()
-        print("  ✓ 3 default users created")
+        print("  OK 3 default users created")
     else:
-        print("  · Users already present, skipping")
+        print("  - Users already present, skipping")
 
     # ── Inventory ──────────────────────────────────────
     cur.execute("SELECT COUNT(*) AS n FROM inventory")
     existing = cur.fetchone()["n"]
     if existing > 0 and not FORCE:
-        print(f"  · Inventory already has {existing} rows (use --force to reimport)")
+        print(f"  - Inventory already has {existing} rows (use --force to reimport)")
     else:
         if FORCE:
             cur.execute("TRUNCATE inventory RESTART IDENTITY CASCADE")
@@ -331,7 +331,7 @@ def run():
                    %(entries)s, %(exits)s)
             """, items)
             conn.commit()
-            print(f"  ✓ {len(items)} inventory items inserted")
+            print(f"  OK {len(items)} inventory items inserted")
         else:
             print("  WARNING: no inventory items found — check that Excel files are in data/")
 
@@ -347,9 +347,9 @@ def run():
                 alerts
             )
             conn.commit()
-            print(f"  ✓ {len(alerts)} alerts inserted")
+            print(f"  OK {len(alerts)} alerts inserted")
     else:
-        print("  · Alerts already present, skipping")
+        print("  - Alerts already present, skipping")
 
     # ── Books & loans ──────────────────────────────────
     cur.execute("SELECT COUNT(*) AS n FROM books")
@@ -369,18 +369,18 @@ def run():
                        %(status)s, %(borrower)s, %(borrower_contact)s, %(loan_date)s,
                        %(due_date)s, %(notes)s)
                 """, books)
-                print(f"  ✓ {len(books)} books inserted")
+                print(f"  OK {len(books)} books inserted")
             if loans:
                 psycopg2.extras.execute_batch(cur, """
                     INSERT INTO loans (code, title, author, borrower, loan_date, due_date, loan_status)
                     VALUES (%(code)s, %(title)s, %(author)s, %(borrower)s, %(loan_date)s, %(due_date)s, %(loan_status)s)
                 """, loans)
-                print(f"  ✓ {len(loans)} loans inserted")
+                print(f"  OK {len(loans)} loans inserted")
             conn.commit()
         except Exception as e:
             print(f"  WARNING: biblioteca import failed: {e}")
     else:
-        print("  · Books already present, skipping")
+        print("  - Books already present, skipping")
 
     # ── Existing movements.json ─────────────────────────
     old_mvts = read_movements_json()
@@ -400,11 +400,11 @@ def run():
                      m["type"], m["quantity"], m.get("notes", ""), ts)
                 )
             conn.commit()
-            print(f"  ✓ {len(old_mvts)} movements migrated")
+            print(f"  OK {len(old_mvts)} movements migrated")
 
     cur.close()
     conn.close()
-    print("\nMigration complete ✓")
+    print("\nMigration complete OK")
 
 
 if __name__ == "__main__":
